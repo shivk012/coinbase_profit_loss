@@ -5,7 +5,7 @@ import hmac
 import hashlib
 import pandas as pd
 import json
-
+import time
 
 class Coinbase_Auth(AuthBase):
     def __init__(self, API_KEY, API_SECRET):
@@ -61,6 +61,7 @@ class Coinbase:
         df = pd.json_normalize(data)
         df = df[["id", "balance.amount", "balance.currency"]]
         df["balance.amount"] = pd.to_numeric(df["balance.amount"])
+        df = df[df["balance.amount"] > 0]
         self.accounts = df.loc[df["id"] != df["balance.currency"]]
 
     def _get_transaction_for_account(self, id):
@@ -98,4 +99,5 @@ class Coinbase:
             lambda currency: self.accounts[self.accounts["balance.currency"] == currency]["balance.amount"].iloc[0]/self.rates.get(currency, 0)
         )
         df = df[~df["amount.currency"].isin(["GBP", "USDC", "USDT"])]
+        df["profit_loss"] = df["Current Value"] - df["native_amount.amount"]
         self.profit_loss = df
