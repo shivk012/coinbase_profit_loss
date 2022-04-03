@@ -1,52 +1,94 @@
-import { TableContainer, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react';
+import { Table, Thead, Tbody, Tr, Th, Td, chakra, Text } from '@chakra-ui/react';
+import { TriangleDownIcon, TriangleUpIcon } from '@chakra-ui/icons';
+import { useTable, useSortBy } from 'react-table';
+import React, { useEffect, useState } from 'react';
 
 function DynamicTable(props) {
-  console.log(props);
-  // parse the output from the back end into a table
-  /* expected data format:
-    {
-        "amount.currency":
-            {"0":"ACH","1":"ADA","2":"ALGO"},
-        "native_amount.amount":
-            {"0":16.71,"1":160.2,"2":0.07},
-        "Current Value":
-            {"0":29.4048018955,"1":98.802128368,"2":101.932923662},
-        "profit_loss":
-            {"0":12.6948018955,"1":-61.397871632,"2":101.862923662}
-    }
+    // parse the output from the back end into a table
+    /* expected data format:
+
+  const data = {
+    columns: [
+      { Header: 'Coin', accessor: 'Coin' },
+      { Header: 'Number of Coins', accessor: 'Number of Coins' },
+      { Header: 'Value in GBP', accessor: 'Value in GBP' },
+      { Header: 'Profit in GBP', accessor: 'Profit in GBP' },
+    ],
+    output: [
+      {
+        'Coin': 'ACH',
+        'Number of Coins': 1,
+        'Value in GBP': 532,
+        'Profit in GBP': 1,
+      },
+      {
+        'Coin': 'ADA',
+        'Number of Coins': 16,
+        'Value in GBP': 99224,
+        'Profit in GBP': -793506776,
+      },
+      {
+        'Coin': 'ALGO',
+        'Number of Coins': 0.05,
+        'Value in GBP': 467975388,
+        'Profit in GBP': 967975388,
+      }
+    ],
+  };
     */
 
-  
-  const data = props.data;
-  if (data.length === 0) {
-    return <div>No data</div>;
-  }
-  const headings = Object.keys(data);
-  const table_headings = headings.map(heading => (
-    <Th key={heading}>{heading}</Th>
-  ));
+    const data = props.data;
+    console.log(data)
+    if (data.length===0) {
+        return <Text>Loading...</Text>;
+    }
+    const columns = data.columns;
+    const output = data.output;
 
-  const columns = Object.values(data).map(Object.values);
-  const rows = columns[0].map((_, colIndex) =>
-    columns.map(row => row[colIndex])
-  );
-  const table_rows = rows.map((row, rowIndex) => (
-    <Tr key={rowIndex}>
-      {row.map((cell, cellIndex) => (
-        <Td key={cellIndex}>{cell}</Td>
-      ))}
-    </Tr>
-  ));
-  return (
-    <TableContainer>
-      <Table variant="simple">
-        <Thead>
-          <Tr>{table_headings}</Tr>
-        </Thead>
-
-        <Tbody>{table_rows}</Tbody>
-      </Table>
-    </TableContainer>
-  );
+    const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } = useTable(
+        {
+            columns,
+            data: output,
+        },
+        useSortBy
+    );
+    return (
+        <Table {...getTableProps()}>
+            <Thead>
+                {headerGroups.map((headerGroup) => (
+                    <Tr {...headerGroup.getHeaderGroupProps()}>
+                        {headerGroup.headers.map((column) => (
+                            <Th {...column.getHeaderProps(column.getSortByToggleProps())} isNumeric={column.isNumeric}>
+                                {column.render("Header")}
+                                <chakra.span pl="4">
+                                    {column.isSorted ? (
+                                        column.isSortedDesc ? (
+                                            <TriangleDownIcon aria-label="sorted descending" />
+                                        ) : (
+                                            <TriangleUpIcon aria-label="sorted ascending" />
+                                        )
+                                    ) : null}
+                                </chakra.span>
+                            </Th>
+                        ))}
+                    </Tr>
+                ))}
+            </Thead>
+            <Tbody {...getTableBodyProps()}>
+                {rows.map((row) => {
+                    prepareRow(row);
+                    return (
+                        <Tr {...row.getRowProps()}>
+                            {row.cells.map((cell) => (
+                                <Td {...cell.getCellProps()} isNumeric={cell.column.isNumeric}>
+                                    {cell.render("Cell")}
+                                </Td>
+                            ))}
+                        </Tr>
+                    );
+                })}
+            </Tbody>
+        </Table>
+    );
 }
 export default DynamicTable;
